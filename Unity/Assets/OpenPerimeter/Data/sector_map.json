@@ -1,0 +1,68 @@
+{
+  "map_name": "Macular_GCC_Hood_GarwayHeath_10_2",
+  "version": "1.0.0",
+  "description": "Anatomical mapping of 10-2 visual field points to ganglion cell complex (GCC) sectors for structure-function correlation. Researcher-supplied file.",
+  "grid_type": "10-2",
+  "sectors": [
+    {
+      "sector_id": "ST_MACULA",
+      "sector_name": "Superior-Temporal Macula",
+      "corresponds_to_oct": "Inferior-Temporal Retinal Ganglion Cells",
+      "points": [
+        {"x": 1.0, "y": 1.0},
+        {"x": 3.0, "y": 1.0},
+        {"x": 5.0, "y": 1.0},
+        {"x": 1.0, "y": 3.0},
+        {"x": 3.0, "y": 3.0},
+        {"x": 5.0, "y": 3.0},
+        {"x": 7.0, "y": 1.0},
+        {"x": 7.0, "y": 3.0}
+      ]
+    },
+    {
+      "sector_id": "SN_MACULA",
+      "sector_name": "Superior-Nasal Macula",
+      "corresponds_to_oct": "Inferior-Nasal Retinal Ganglion Cells",
+      "points": [
+        {"x": -1.0, "y": 1.0},
+        {"x": -3.0, "y": 1.0},
+        {"x": -5.0, "y": 1.0},
+        {"x": -1.0, "y": 3.0},
+        {"x": -3.0, "y": 3.0},
+        {"x": -5.0, "y": 3.0},
+        {"x": -7.0, "y": 1.0},
+        {"x": -7.0, "y": 3.0}
+      ]
+    },
+    {
+      "sector_id": "IT_MACULA",
+      "sector_name": "Inferior-Temporal Macula",
+      "corresponds_to_oct": "Superior-Temporal Retinal Ganglion Cells",
+      "points": [
+        {"x": 1.0, "y": -1.0},
+        {"x": 3.0, "y": -1.0},
+        {"x": 5.0, "y": -1.0},
+        {"x": 1.0, "y": -3.0},
+        {"x": 3.0, "y": -3.0},
+        {"x": 5.0, "y": -3.0},
+        {"x": 7.0, "y": -1.0},
+        {"x": 7.0, "y": -3.0}
+      ]
+    },
+    {
+      "sector_id": "IN_MACULA",
+      "sector_name": "Inferior-Nasal Macula",
+      "corresponds_to_oct": "Superior-Nasal Retinal Ganglion Cells",
+      "points": [
+        {"x": -1.0, "y": -1.0},
+        {"x": -3.0, "y": -1.0},
+        {"x": -5.0, "y": -1.0},
+        {"x": -1.0, "y": -3.0},
+        {"x": -3.0, "y": -3.0},
+        {"x": -5.0, "y": -3.0},
+        {"x": -7.0, "y": -1.0},
+        {"x": -7.0, "y": -3.0}
+      ]
+    }
+  ]
+}

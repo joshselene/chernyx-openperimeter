@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0.0",
+  "calibration_id": "CAL-TEMPLATE-DEMO-001",
+  "created_at_utc": "2026-10-19T08:30:00Z",
+  "laboratory": "OpenPerimeter Reference Laboratory",
+  "operator_id": "REF-OP-01",
+  "is_demo_template": true,
+  "device_profile": {
+    "manufacturer": "Generic",
+    "model": "Generic OLED Smartphone",
+    "android_version": "14",
+    "display": {
+      "panel_technology": "OLED",
+      "resolution_px": [1080, 2400],
+      "ppi": 409,
+      "refresh_rate_hz": 60,
+      "color_mode": "Standard"
+    }
+  },
+  "viewer_profile": {
+    "manufacturer": "Google",
+    "model": "Cardboard v2",
+    "lens_type": "Biconvex 37mm",
+    "focal_length_mm": 45.0,
+    "ipd_mm": 64.0,
+    "eye_relief_mm": 13.0,
+    "distortion_coefficients": {
+      "k1": 0.34,
+      "k2": 0.12
+    }
+  },
+  "photometric_measurements": {
+    "photometer_model": "Reference Spot Photometer",
+    "photometer_serial": "REF-0000",
+    "last_npl_calibration_date": "2026-01-01",
+    "background_target_cdm2": 10.0,
+    "background_measured_cdm2": 10.0,
+    "background_dac_value": 31,
+    "peak_measured_cdm2": 500.0,
+    "measured_dynamic_range_db": 34.0,
+    "hfa_offset_db": 8.04,
+    "lut_samples_dac": [0, 16, 31, 64, 96, 128, 160, 192, 224, 255],
+    "lut_samples_cdm2": [0.001, 2.1, 10.0, 48.0, 112.0, 195.0, 290.0, 385.0, 455.0, 500.0]
+  },
+  "signature": {
+    "algorithm": "HMAC-SHA256",
+    "hash": "UNVERIFIED_DEMO_SIGNATURE"
+  }
+}

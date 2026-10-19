@@ -1,0 +1,15 @@
+{
+  "database_name": "OpenPerimeter_Placeholder_Norms",
+  "version": "0.1.0-SYNTHETIC",
+  "is_validated": false,
+  "disclaimer": "UNVALIDATED NORMS - FOR TESTING PIPELINE ONLY. This file contains placeholder statistical distributions for software pipeline verification. It must NEVER be used for clinical interpretation or scientific conclusions until replaced with a certified human normative dataset.",
+  "source": "Synthetic placeholder for testing pipeline",
+  "pattern": "24-2",
+  "age_groups": [
+    {
+      "min_age": 20,
+      "max_age": 80,
+      "points": []
+    }
+  ]
+}
