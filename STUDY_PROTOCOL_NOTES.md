@@ -125,3 +125,12 @@ The study adheres strictly to the principles of India's **Digital Personal Data 
 2. **Data Minimization:** No personal identifiers (name, national ID, address, phone, IP address) are entered into or stored by OpenPerimeter.
 3. **Pseudonymous Participant IDs:** Assigned by the clinical coordinator in the Master Subject Key Log (kept in a separate, encrypted institutional spreadsheet disconnected from the perimeters).
 4. **Right to Erasure (Delete):** In compliance with the DPDP Act, the OpenPerimeter operator interface provides a cryptographically secure "Purge Subject Records" function that completely removes all sessions associated with a given Subject ID from local storage.
+
+---
+
+## 7. Prerequisite Pilot Bench Study Protocol on Healthy Eyes (Phase 5)
+
+Prior to initiating enrollment of the clinical glaucoma cohort, an investigational bench study on **N = 30 healthy adult eyes** must be completed in accordance with [PILOT_BENCH_STUDY_PROTOCOL.md](file:///Volumes/EMCON/Projects/glaucoma/docs/PILOT_BENCH_STUDY_PROTOCOL.md):
+- **Test-Retest Repeatability ($CR$):** Verifies that within-subject standard deviation $s_w \le 1.25\text{ dB}$ ($CR \le 3.50\text{ dB}$).
+- **Bland-Altman Agreement against HFA3:** Verifies systematic bias $\le \pm 1.50\text{ dB}$ and 95% LoA span $\le 7.00\text{ dB}$.
+- **Decision Gates:** All 6 pre-specified Go / No-Go quality gates must be certified before submitting patient study amendments to the Institutional Ethics Committee (IEC).
