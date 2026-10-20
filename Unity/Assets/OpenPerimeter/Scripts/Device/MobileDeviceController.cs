@@ -1,10 +1,21 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace OpenPerimeter.Device
 {
-    public class AndroidDeviceController : MonoBehaviour
+    /// <summary>
+    /// Cross-platform mobile device control for Android and iOS research builds.
+    /// Locks brightness / keep-awake and polls battery + thermal telemetry so OLED
+    /// luminance throttling can pause a session safely.
+    ///
+    /// Player Settings expectations (verify in Editor):
+    /// - Android: IL2CPP, ARM64, Min API 29, package org.openperimeter.research
+    /// - iOS: IL2CPP, ARM64, Target OS 15.0+, bundle org.openperimeter.research
+    /// - Both: Landscape Left fixed orientation; disable adaptive brightness / True Tone on device
+    /// </summary>
+    public class MobileDeviceController : MonoBehaviour
     {
         [Header("Display Settings")]
         [SerializeField] private bool lockMaxBrightness = true;
@@ -16,18 +27,28 @@ namespace OpenPerimeter.Device
 
         private float currentBatteryTemperatureCelsius = 0f;
         private int currentBatteryLevelPercent = 100;
-        private int currentThermalStatus = 0; // 0=None, 1=Light, 2=Moderate, 3=Severe, 4=Critical
+        // Aligned across platforms: 0=None/Nominal, 1=Light/Fair, 2=Moderate/Serious, 3+=Severe/Critical
+        private int currentThermalStatus = 0;
         private float lastPollTime = 0f;
 
         public float BatteryTemperatureCelsius => currentBatteryTemperatureCelsius;
         public int BatteryLevelPercent => currentBatteryLevelPercent;
         public int ThermalStatus => currentThermalStatus;
-        public bool IsOverheating => currentBatteryTemperatureCelsius >= thermalWarningThresholdCelsius || currentThermalStatus >= 2;
+        public bool IsOverheating =>
+            currentBatteryTemperatureCelsius >= thermalWarningThresholdCelsius || currentThermalStatus >= 2;
 
         public event Action<string> OnDeviceWarning;
 
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern int OpenPerimeter_GetThermalState();
+#endif
+
         private void Awake()
         {
+            // VR cardboard viewers require a fixed landscape plane on both mobile OSes.
+            Screen.orientation = ScreenOrientation.LandscapeLeft;
+
             if (keepScreenOn)
             {
                 Screen.sleepTimeout = SleepTimeout.NeverSleep;
@@ -52,7 +73,9 @@ namespace OpenPerimeter.Device
         }
 
         /// <summary>
-        /// Overrides Android WindowManager brightness to lock maximum calibrated brightness and prevent OS auto-dimming.
+        /// Locks display brightness to the calibrated maximum and keeps the screen on.
+        /// Android: WindowManager.LayoutParams.screenBrightness + FLAG_KEEP_SCREEN_ON.
+        /// iOS / Editor fallback: Unity Screen.brightness (requires user allow-brightness on some iOS versions).
         /// </summary>
         public void ApplyWindowBrightnessLock()
         {
@@ -70,25 +93,44 @@ namespace OpenPerimeter.Device
                             // 1.0f = maximum display brightness override
                             layoutParams.Set("screenBrightness", lockMaxBrightness ? 1.0f : -1.0f);
                             window.Call("setAttributes", layoutParams);
-                            
+
                             // FLAG_KEEP_SCREEN_ON = 128 (0x80)
                             window.Call("addFlags", 128);
                         }
                     }));
                 }
-                UnityEngine.Debug.Log("[OpenPerimeter] Android Window brightness locked to 1.0f and screen-on enforced.");
+                Debug.Log("[OpenPerimeter] Android window brightness locked to 1.0f and screen-on enforced.");
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"[OpenPerimeter] Failed to lock Android window brightness: {ex.Message}");
+                Debug.LogWarning($"[OpenPerimeter] Failed to lock Android window brightness: {ex.Message}");
+                Screen.brightness = lockMaxBrightness ? 1.0f : Screen.brightness;
+            }
+#elif UNITY_IOS && !UNITY_EDITOR
+            try
+            {
+                if (lockMaxBrightness)
+                {
+                    Screen.brightness = 1.0f;
+                }
+                Debug.Log("[OpenPerimeter] iOS Screen.brightness locked to 1.0f; sleepTimeout=NeverSleep.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OpenPerimeter] Failed to lock iOS screen brightness: {ex.Message}");
             }
 #else
-            Screen.brightness = 1.0f;
+            if (lockMaxBrightness)
+            {
+                Screen.brightness = 1.0f;
+            }
 #endif
         }
 
         /// <summary>
-        /// Polls battery temperature and Android PowerManager thermal status.
+        /// Polls battery level and platform thermal status.
+        /// Android: BATTERY_CHANGED extras + PowerManager.getCurrentThermalStatus (API 29+).
+        /// iOS: SystemInfo.batteryLevel + NSProcessInfo.thermalState (via native plugin).
         /// </summary>
         public void PollBatteryAndThermalStatus()
         {
@@ -114,7 +156,6 @@ namespace OpenPerimeter.Device
                     }
                 }
 
-                // Android 10+ (API 29+) ThermalStatus
                 using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
                 using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
                 using (var powerManager = activity.Call<AndroidJavaObject>("getSystemService", "power"))
@@ -127,32 +168,59 @@ namespace OpenPerimeter.Device
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogWarning($"[OpenPerimeter] Thermal polling error: {ex.Message}");
+                Debug.LogWarning($"[OpenPerimeter] Android thermal polling error: {ex.Message}");
+            }
+#elif UNITY_IOS && !UNITY_EDITOR
+            try
+            {
+                float batteryFrac = SystemInfo.batteryLevel;
+                if (batteryFrac >= 0f)
+                {
+                    currentBatteryLevelPercent = Mathf.RoundToInt(batteryFrac * 100f);
+                }
+
+                // iOS does not expose battery temperature to apps; rely on ProcessInfo thermal state.
+                currentBatteryTemperatureCelsius = 0f;
+                currentThermalStatus = OpenPerimeter_GetThermalState();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[OpenPerimeter] iOS thermal polling error: {ex.Message}");
             }
 #else
+            // Editor / other platforms: use SystemInfo when available, otherwise benign stubs.
+            float batteryFrac = SystemInfo.batteryLevel;
+            currentBatteryLevelPercent = batteryFrac >= 0f
+                ? Mathf.RoundToInt(batteryFrac * 100f)
+                : 95;
             currentBatteryTemperatureCelsius = 31.5f;
-            currentBatteryLevelPercent = 95;
             currentThermalStatus = 0;
 #endif
 
             if (IsOverheating)
             {
-                string msg = $"WARNING: Device thermal elevation detected ({currentBatteryTemperatureCelsius:F1}°C, Status {currentThermalStatus}). OLED luminance may throttle.";
-                UnityEngine.Debug.LogWarning($"[OpenPerimeter] {msg}");
+                string tempPart = currentBatteryTemperatureCelsius > 0.1f
+                    ? $"{currentBatteryTemperatureCelsius:F1}°C, "
+                    : string.Empty;
+                string msg =
+                    $"WARNING: Device thermal elevation detected ({tempPart}Status {currentThermalStatus}). OLED luminance may throttle.";
+                Debug.LogWarning($"[OpenPerimeter] {msg}");
                 OnDeviceWarning?.Invoke(msg);
             }
         }
 
         /// <summary>
-        /// Verifies that a valid calibration.json file exists for this device model.
+        /// Verifies that a valid calibration.json file exists for this device model
+        /// under Application.persistentDataPath (same path on Android and iOS).
         /// </summary>
         public bool CheckCalibrationFileExists()
         {
             string calPath = Path.Combine(Application.persistentDataPath, "calibration.json");
             if (!File.Exists(calPath))
             {
-                string warn = $"WARNING: No calibration.json found for {SystemInfo.deviceModel} at {calPath}. Running in UNCALIBRATED DEMO MODE.";
-                UnityEngine.Debug.LogWarning($"[OpenPerimeter] {warn}");
+                string warn =
+                    $"WARNING: No calibration.json found for {SystemInfo.deviceModel} at {calPath}. Running in UNCALIBRATED DEMO MODE.";
+                Debug.LogWarning($"[OpenPerimeter] {warn}");
                 OnDeviceWarning?.Invoke(warn);
                 return false;
             }

@@ -57,14 +57,38 @@ namespace OpenPerimeter.Core
         {
             if (File.Exists(jsonPath))
             {
-                string json = File.ReadAllText(jsonPath);
-                loadedNorms = JsonUtility.FromJson<NormativeDatabaseFile>(json);
+                LoadNormsFromJson(File.ReadAllText(jsonPath));
             }
             else
             {
                 loadedNorms = new NormativeDatabaseFile
                 {
                     database_name = "Missing_Norms",
+                    is_validated = false,
+                    disclaimer = UNVALIDATED_DISCLAIMER
+                };
+            }
+        }
+
+        public void LoadNormsFromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+            {
+                loadedNorms = new NormativeDatabaseFile
+                {
+                    database_name = "Missing_Norms",
+                    is_validated = false,
+                    disclaimer = UNVALIDATED_DISCLAIMER
+                };
+                return;
+            }
+
+            loadedNorms = JsonUtility.FromJson<NormativeDatabaseFile>(json);
+            if (loadedNorms == null)
+            {
+                loadedNorms = new NormativeDatabaseFile
+                {
+                    database_name = "Invalid_Norms",
                     is_validated = false,
                     disclaimer = UNVALIDATED_DISCLAIMER
                 };

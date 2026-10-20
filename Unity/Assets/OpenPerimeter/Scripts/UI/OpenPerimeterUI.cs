@@ -13,7 +13,7 @@ namespace OpenPerimeter.UI
         private OpenPerimeterBootstrap bootstrap;
         private PerimetrySessionController sessionController;
         private FixationTarget fixationTarget;
-        private AndroidDeviceController deviceController;
+        private MobileDeviceController deviceController;
 
         private string participantId = "OP-SUBJ-001";
         private float currentProgress = 0f;
@@ -32,7 +32,7 @@ namespace OpenPerimeter.UI
             OpenPerimeterBootstrap boot,
             PerimetrySessionController controller,
             FixationTarget target,
-            AndroidDeviceController device)
+            MobileDeviceController device)
         {
             bootstrap = boot;
             sessionController = controller;
@@ -128,7 +128,7 @@ namespace OpenPerimeter.UI
         {
             InitStyles();
 
-            // Calculate scaled GUI matrix for crisp presentation on high-DPI Android screens
+            // Scale OnGUI for high-DPI Android / iOS Retina displays
             float scale = Mathf.Max(1.0f, Screen.dpi / 160f);
             if (scale > 2.5f) scale = 2.5f;
 

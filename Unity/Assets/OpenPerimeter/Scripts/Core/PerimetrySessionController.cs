@@ -54,10 +54,15 @@ namespace OpenPerimeter.Core
         public StimulusPresenter StimulusPresenter { get => stimulusPresenter; set => stimulusPresenter = value; }
         public FixationTarget FixationTarget { get => fixationTarget; set => fixationTarget = value; }
 
+        /// <summary>
+        /// Initializes session subsystems. Optional JSON arguments are raw file contents
+        /// (from Resources via PackagedResearchData), not filesystem paths — so Android
+        /// and iOS both resolve packaged norms/sector maps without StreamingAssets I/O.
+        /// </summary>
         public void Initialize(
             CalibrationProfile profile,
-            string sectorMapJsonPath = null,
-            string normsJsonPath = null)
+            string sectorMapJson = null,
+            string normsJson = null)
         {
             activeProfile = profile;
             reliabilityMonitor = new ReliabilityMonitor();
@@ -65,11 +70,11 @@ namespace OpenPerimeter.Core
             sectorMapper = new MacularSectorMapper();
             storageService = new EncryptedStorageService();
 
-            if (!string.IsNullOrEmpty(normsJsonPath))
-                deviationEngine.LoadNormsFromFile(normsJsonPath);
+            if (!string.IsNullOrEmpty(normsJson))
+                deviationEngine.LoadNormsFromJson(normsJson);
 
-            if (!string.IsNullOrEmpty(sectorMapJsonPath))
-                sectorMapper.LoadFromFile(sectorMapJsonPath);
+            if (!string.IsNullOrEmpty(sectorMapJson))
+                sectorMapper.LoadFromJson(sectorMapJson);
 
             if (fixationTarget != null)
             {
