@@ -18,7 +18,9 @@ namespace OpenPerimeter.Core
 
         /// <summary>
         /// Checks whether a valid patient response occurred this frame.
-        /// Supports Android touchscreen taps, Editor mouse clicks, keyboard (Space/Enter), and Bluetooth HID clickers.
+        /// Supports mobile touchscreen taps (Android &amp; iOS), Editor mouse clicks,
+        /// keyboard (Space/Enter), and Bluetooth HID clickers.
+        /// Uses the legacy Input Manager (Player Settings activeInputHandler = Both).
         /// </summary>
         public static bool CheckResponse(out InputSourceType source)
         {
@@ -29,7 +31,7 @@ namespace OpenPerimeter.Core
                 return false;
             }
 
-            // 1. Android Touch
+            // 1. Touch (Android / iOS) — checked before mouse so synthesized mouse from touch does not double-fire
             if (Input.touchCount > 0)
             {
                 for (int i = 0; i < Input.touchCount; i++)

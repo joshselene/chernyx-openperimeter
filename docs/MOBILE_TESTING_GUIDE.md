@@ -28,7 +28,7 @@ The primary Unity project is located at:
    - [`PerimetrySessionController`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/Core/PerimetrySessionController.cs): Manages the test loop (24-2 / 10-2), ZEST / 4-2 Staircase algorithms, catch trials, and cancellations.
    - [`StimulusPresenter`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/Display/StimulusPresenter.cs): Renders circular stimuli, monitors vsync duration (200 ms), draws the central amber fixation cross, and measures frame drops.
    - [`FixationTarget`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/Core/FixationTarget.cs): Tares head pose via device gyroscope and pauses the test if drift exceeds 3.0°.
-   - [`AndroidDeviceController`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/Device/AndroidDeviceController.cs): Locks maximum calibrated brightness, prevents sleep, and polls battery thermal telemetry.
+   - [`MobileDeviceController`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/Device/MobileDeviceController.cs): Locks maximum calibrated brightness, prevents sleep, and polls battery/thermal telemetry on Android and iOS.
    - [`OpenPerimeterUI`](file:///Volumes/EMCON/Projects/glaucoma/Unity/Assets/OpenPerimeter/Scripts/UI/OpenPerimeterUI.cs): Provides the researcher dashboard, eye selection (OD/OS), live progress/reliability stats, and data export summary.
 
 ---

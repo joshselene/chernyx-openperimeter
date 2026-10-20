@@ -22,7 +22,7 @@ namespace OpenPerimeter.Tests
         private PerimetrySessionController sessionController;
         private StimulusPresenter stimulusPresenter;
         private FixationTarget fixationTarget;
-        private AndroidDeviceController deviceController;
+        private MobileDeviceController deviceController;
         private Material testViewportMaterial;
         private Shader stereoShader;
 
@@ -36,7 +36,7 @@ namespace OpenPerimeter.Tests
             sessionController = rootGo.AddComponent<PerimetrySessionController>();
             stimulusPresenter = rootGo.AddComponent<StimulusPresenter>();
             fixationTarget = rootGo.AddComponent<FixationTarget>();
-            deviceController = rootGo.AddComponent<AndroidDeviceController>();
+            deviceController = rootGo.AddComponent<MobileDeviceController>();
             bootstrap = rootGo.AddComponent<OpenPerimeterBootstrap>();
 
             stimulusPresenter.ViewportMaterial = testViewportMaterial;

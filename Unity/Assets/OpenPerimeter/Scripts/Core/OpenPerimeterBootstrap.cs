@@ -5,6 +5,7 @@ using OpenPerimeter.Calibration;
 using OpenPerimeter.Device;
 using OpenPerimeter.Display;
 using OpenPerimeter.Patterns;
+using OpenPerimeter.Storage;
 using OpenPerimeter.UI;
 
 namespace OpenPerimeter.Core
@@ -15,7 +16,7 @@ namespace OpenPerimeter.Core
         [SerializeField] private PerimetrySessionController sessionController;
         [SerializeField] private StimulusPresenter stimulusPresenter;
         [SerializeField] private FixationTarget fixationTarget;
-        [SerializeField] private AndroidDeviceController deviceController;
+        [SerializeField] private MobileDeviceController deviceController;
         [SerializeField] private OpenPerimeterUI userInterface;
         [SerializeField] private Material stereoViewportMaterial;
 
@@ -49,7 +50,7 @@ namespace OpenPerimeter.Core
             if (sessionController == null) sessionController = FindFirstObjectByType<PerimetrySessionController>();
             if (stimulusPresenter == null) stimulusPresenter = FindFirstObjectByType<StimulusPresenter>();
             if (fixationTarget == null) fixationTarget = FindFirstObjectByType<FixationTarget>();
-            if (deviceController == null) deviceController = FindFirstObjectByType<AndroidDeviceController>();
+            if (deviceController == null) deviceController = FindFirstObjectByType<MobileDeviceController>();
             if (userInterface == null) userInterface = FindFirstObjectByType<OpenPerimeterUI>();
 
             if (sessionController == null)
@@ -75,9 +76,9 @@ namespace OpenPerimeter.Core
 
             if (deviceController == null)
             {
-                var go = new GameObject("[AndroidDeviceController]");
+                var go = new GameObject("[MobileDeviceController]");
                 go.transform.SetParent(transform);
-                deviceController = go.AddComponent<AndroidDeviceController>();
+                deviceController = go.AddComponent<MobileDeviceController>();
             }
 
             if (userInterface == null)
@@ -110,18 +111,14 @@ namespace OpenPerimeter.Core
                 stimulusPresenter.SetTestedEye(sessionController != null ? sessionController.TestedEye : EyeSide.OD);
             }
 
-            // 3. Locate Norms & Sector Maps
-            string dataDir = GetDataDirectoryPath();
-            string sectorMapPath = Path.Combine(dataDir, "sector_map.json");
-            string normsPath = Path.Combine(dataDir, "norms.json");
+            // 3. Packaged norms & sector maps (Resources — works on Android and iOS)
+            string sectorMapJson = PackagedResearchData.LoadTextOrNull("sector_map.json");
+            string normsJson = PackagedResearchData.LoadTextOrNull("norms.json");
 
             // 4. Initialize Session Controller
             if (sessionController != null)
             {
-                sessionController.Initialize(
-                    activeProfile,
-                    File.Exists(sectorMapPath) ? sectorMapPath : null,
-                    File.Exists(normsPath) ? normsPath : null);
+                sessionController.Initialize(activeProfile, sectorMapJson, normsJson);
             }
 
             // 5. Connect UI
@@ -130,11 +127,12 @@ namespace OpenPerimeter.Core
                 userInterface.Initialize(this, sessionController, fixationTarget, deviceController);
             }
 
-            UnityEngine.Debug.Log($"[OpenPerimeter] Bootstrap complete. Calibration: {calibrationStatusMessage}");
+            Debug.Log($"[OpenPerimeter] Bootstrap complete. Calibration: {calibrationStatusMessage}");
         }
 
         public CalibrationProfile LoadCalibrationProfile(out bool isCalibrated, out string message)
         {
+            // Operator-pushed photometer profile (adb / Xcode / Files app → persistentDataPath)
             string calPath = Path.Combine(Application.persistentDataPath, "calibration.json");
             CalibrationProfile profile = null;
 
@@ -152,27 +150,26 @@ namespace OpenPerimeter.Core
                     }
                     else
                     {
-                        UnityEngine.Debug.LogWarning("[OpenPerimeter] Calibration file signature failed or is demo.");
+                        Debug.LogWarning("[OpenPerimeter] Calibration file signature failed or is demo.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogWarning($"[OpenPerimeter] Failed to read {calPath}: {ex.Message}");
+                    Debug.LogWarning($"[OpenPerimeter] Failed to read {calPath}: {ex.Message}");
                 }
             }
 
-            // Fallback: Check project assets / template
-            string defaultJsonPath = Path.Combine(GetDataDirectoryPath(), "devices", "default_calibration.json");
-            if (File.Exists(defaultJsonPath))
+            // Fallback: packaged default template (Resources, both mobile platforms)
+            string defaultJson = PackagedResearchData.LoadTextOrNull("devices/default_calibration.json");
+            if (!string.IsNullOrEmpty(defaultJson))
             {
                 try
                 {
-                    string json = File.ReadAllText(defaultJsonPath);
-                    profile = JsonUtility.FromJson<CalibrationProfile>(json);
+                    profile = JsonUtility.FromJson<CalibrationProfile>(defaultJson);
                 }
                 catch (Exception ex)
                 {
-                    UnityEngine.Debug.LogWarning($"[OpenPerimeter] Failed to read default calibration: {ex.Message}");
+                    Debug.LogWarning($"[OpenPerimeter] Failed to parse default calibration: {ex.Message}");
                 }
             }
 
@@ -187,16 +184,6 @@ namespace OpenPerimeter.Core
             return profile;
         }
 
-        private string GetDataDirectoryPath()
-        {
-            string editorDataPath = Path.Combine(Application.dataPath, "OpenPerimeter", "Data");
-            if (Directory.Exists(editorDataPath)) return editorDataPath;
-
-            string persistentDataDir = Path.Combine(Application.persistentDataPath, "OpenPerimeterData");
-            if (!Directory.Exists(persistentDataDir)) Directory.CreateDirectory(persistentDataDir);
-            return persistentDataDir;
-        }
-
         private CalibrationProfile CreateDefaultInMemoryProfile()
         {
             var p = new CalibrationProfile
@@ -209,8 +196,8 @@ namespace OpenPerimeter.Core
             };
             p.device_profile.model = SystemInfo.deviceModel;
             p.device_profile.display.ppi = Screen.dpi > 0 ? Screen.dpi : 409f;
-            p.device_profile.display.refresh_rate_hz = (int)Screen.currentResolution.refreshRateRatio.value > 0 
-                ? (int)Screen.currentResolution.refreshRateRatio.value 
+            p.device_profile.display.refresh_rate_hz = (int)Screen.currentResolution.refreshRateRatio.value > 0
+                ? (int)Screen.currentResolution.refreshRateRatio.value
                 : 60;
             p.photometric_measurements.background_measured_cdm2 = 10.0f;
             p.photometric_measurements.background_dac_value = 31;

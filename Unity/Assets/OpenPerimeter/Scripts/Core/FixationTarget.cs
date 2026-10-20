@@ -63,7 +63,7 @@ namespace OpenPerimeter.Core
         {
             if (SystemInfo.supportsGyroscope)
             {
-                baselineOrientation = Input.gyro.attitude;
+                baselineOrientation = GyroAttitudeToUnity(Input.gyro.attitude);
             }
             else
             {
@@ -78,8 +78,8 @@ namespace OpenPerimeter.Core
         {
             if (!isBaselineSet) return;
 
-            Quaternion currentAttitude = SystemInfo.supportsGyroscope 
-                ? Input.gyro.attitude 
+            Quaternion currentAttitude = SystemInfo.supportsGyroscope
+                ? GyroAttitudeToUnity(Input.gyro.attitude)
                 : transform.rotation;
 
             // Angular distance between baseline and current attitude
@@ -169,6 +169,15 @@ namespace OpenPerimeter.Core
                     }
                     break;
             }
+        }
+
+        /// <summary>
+        /// Converts device gyroscope attitude (right-handed) into Unity's left-handed space.
+        /// Required for correct head-drift angles on both Android and iOS.
+        /// </summary>
+        private static Quaternion GyroAttitudeToUnity(Quaternion q)
+        {
+            return new Quaternion(q.x, q.y, -q.z, -q.w);
         }
     }
 }
