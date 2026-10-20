@@ -4,6 +4,7 @@ using System.Diagnostics;
 using UnityEngine;
 using OpenPerimeter.Calibration;
 using OpenPerimeter.Core;
+using OpenPerimeter.Patterns;
 
 namespace OpenPerimeter.Display
 {
@@ -22,6 +23,7 @@ namespace OpenPerimeter.Display
         public int droppedFrames;
         public bool isTimingValid;
         public long timestampUnixMs;
+        public string inputSource = "None";
     }
 
     public class StimulusPresenter : MonoBehaviour
@@ -34,6 +36,7 @@ namespace OpenPerimeter.Display
 
         [Header("Display and Viewport")]
         [SerializeField] private Material stereoViewportMaterial;
+        [SerializeField] private FixationTarget fixationTarget;
         [SerializeField] private int targetRefreshRateHz = 60;
 
         private CalibrationProfile activeProfile;
@@ -45,6 +48,10 @@ namespace OpenPerimeter.Display
 
         public float StimulusDurationSeconds { get => stimulusDurationSeconds; set => stimulusDurationSeconds = value; }
         public float ResponseWindowSeconds { get => responseWindowSeconds; set => responseWindowSeconds = value; }
+        public Material ViewportMaterial { get => stereoViewportMaterial; set => stereoViewportMaterial = value; }
+        public FixationTarget FixationTarget { get => fixationTarget; set => fixationTarget = value; }
+        public Texture2D StimulusTexture => stimulusTexture;
+        public Color32 BackgroundColor => backgroundColor32;
 
         public void Initialize(CalibrationProfile profile, int texWidth = 1024, int texHeight = 1024)
         {
@@ -55,11 +62,16 @@ namespace OpenPerimeter.Display
             int bgDac = activeProfile != null ? activeProfile.photometric_measurements.background_dac_value : 31;
             backgroundColor32 = new Color32((byte)bgDac, (byte)bgDac, (byte)bgDac, 255);
 
-            stimulusTexture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false)
+            if (stimulusTexture == null || stimulusTexture.width != textureWidth || stimulusTexture.height != textureHeight)
             {
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp
-            };
+                if (stimulusTexture != null) Destroy(stimulusTexture);
+
+                stimulusTexture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+            }
 
             blankBuffer = new Color32[textureWidth * textureHeight];
             ClearToBackground();
@@ -68,26 +80,72 @@ namespace OpenPerimeter.Display
             {
                 stereoViewportMaterial.SetTexture("_MainTex", stimulusTexture);
                 stereoViewportMaterial.SetFloat("_BackgroundLuminanceDAC", bgDac);
+                if (activeProfile != null && activeProfile.viewer_profile != null)
+                {
+                    stereoViewportMaterial.SetFloat("_LensDistortionK1", activeProfile.viewer_profile.distortion_coefficients.k1);
+                    stereoViewportMaterial.SetFloat("_LensDistortionK2", activeProfile.viewer_profile.distortion_coefficients.k2);
+                }
             }
 
             QualitySettings.vSyncCount = 1; // Strict Vsync lock
             Application.targetFrameRate = activeProfile != null && activeProfile.device_profile.display.refresh_rate_hz > 0
                 ? activeProfile.device_profile.display.refresh_rate_hz
-                : 60;
+                : targetRefreshRateHz;
+        }
+
+        public void SetTestedEye(EyeSide eye)
+        {
+            if (stereoViewportMaterial != null)
+            {
+                stereoViewportMaterial.SetInt("_TestedEye", eye == EyeSide.OD ? 0 : 1);
+            }
         }
 
         public void ClearToBackground()
         {
+            if (blankBuffer == null || stimulusTexture == null) return;
+
             for (int i = 0; i < blankBuffer.Length; i++)
             {
                 blankBuffer[i] = backgroundColor32;
             }
+
+            DrawFixationToBuffer(blankBuffer);
+
             stimulusTexture.SetPixels32(blankBuffer);
             stimulusTexture.Apply(false);
         }
 
+        private void DrawFixationToBuffer(Color32[] buffer)
+        {
+            if (fixationTarget == null || activeProfile == null) return;
+
+            float focalLengthMm = activeProfile.viewer_profile.focal_length_mm;
+            float ppi = activeProfile.device_profile.display.ppi;
+            float pixelsPerDegree = VisualAngleCalculator.DegreesToScreenMm(1.0f, focalLengthMm) * (ppi / 25.4f);
+
+            int cx = textureWidth / 2;
+            int cy = textureHeight / 2;
+            float halfSizePx = (fixationTarget.TargetType == FixationTargetType.CentralCross ? 0.5f : 0.3f) * pixelsPerDegree * 0.5f;
+            int armPx = Mathf.Max(2, Mathf.RoundToInt(halfSizePx));
+
+            Color32 amberColor = new Color32(217, 179, 26, 255); // Warm photopic amber
+
+            // Draw Crosshair
+            for (int x = cx - armPx; x <= cx + armPx; x++)
+            {
+                if (x >= 0 && x < textureWidth && cy >= 0 && cy < textureHeight)
+                    buffer[cy * textureWidth + x] = amberColor;
+            }
+            for (int y = cy - armPx; y <= cy + armPx; y++)
+            {
+                if (cx >= 0 && cx < textureWidth && y >= 0 && y < textureHeight)
+                    buffer[y * textureWidth + cx] = amberColor;
+            }
+        }
+
         /// <summary>
-        /// Coroutine that presents a single static stimulus with strict vsync frame counting, duration validation, and HID click monitoring.
+        /// Coroutine that presents a single static stimulus with strict vsync frame counting, duration validation, and multi-input monitoring.
         /// </summary>
         public IEnumerator PresentStimulusRoutine(
             int pointIndex,
@@ -102,6 +160,8 @@ namespace OpenPerimeter.Display
                 UnityEngine.Debug.LogError("[OpenPerimeter] StimulusPresenter: No active calibration profile!");
                 yield break;
             }
+
+            PerimetryInputHandler.ResetDebounce();
 
             // 1. Calculate stimulus luminance and DAC gray level
             float deltaL = activeProfile.DeviceDbToStimulusDeltaL(stimulusDb);
@@ -120,37 +180,58 @@ namespace OpenPerimeter.Display
             int cy = Mathf.RoundToInt((textureHeight * 0.5f) + screenOffsetPx.y);
             int rInt = Mathf.Max(1, Mathf.RoundToInt(radiusPx));
 
-            // 3. Draw circular stimulus onto buffer
-            for (int dx = -rInt; dx <= rInt; dx++)
+            // Restore clean background with fixation target
+            for (int i = 0; i < blankBuffer.Length; i++)
             {
-                for (int dy = -rInt; dy <= rInt; dy++)
+                blankBuffer[i] = backgroundColor32;
+            }
+            DrawFixationToBuffer(blankBuffer);
+
+            // 3. Draw circular stimulus onto buffer with screen bounds protection
+            bool isVisibleOnScreen = (cx + rInt >= 0 && cx - rInt < textureWidth &&
+                                      cy + rInt >= 0 && cy - rInt < textureHeight);
+
+            if (isVisibleOnScreen)
+            {
+                int r2 = rInt * rInt;
+                for (int dx = -rInt; dx <= rInt; dx++)
                 {
-                    if (dx * dx + dy * dy <= rInt * rInt)
+                    for (int dy = -rInt; dy <= rInt; dy++)
                     {
-                        int px = cx + dx;
-                        int py = cy + dy;
-                        if (px >= 0 && px < textureWidth && py >= 0 && py < textureHeight)
+                        if (dx * dx + dy * dy <= r2)
                         {
-                            blankBuffer[py * textureWidth + px] = stimColor;
+                            int px = cx + dx;
+                            int py = cy + dy;
+                            if (px >= 0 && px < textureWidth && py >= 0 && py < textureHeight)
+                            {
+                                blankBuffer[py * textureWidth + px] = stimColor;
+                            }
                         }
                     }
                 }
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning($"[OpenPerimeter] Stimulus point {pointIndex} ({xDeg}°, {yDeg}°) out of screen bounds ({cx},{cy})!");
             }
 
             stimulusTexture.SetPixels32(blankBuffer);
             stimulusTexture.Apply(false);
 
             // 4. Timing control: 200 ms presentation locked to frame count
-            int refreshRate = Application.targetFrameRate > 0 ? Application.targetFrameRate : 60;
+            int refreshRate = Application.targetFrameRate > 0 ? Application.targetFrameRate : targetRefreshRateHz;
             int framesToPresent = Mathf.Max(1, Mathf.RoundToInt(stimulusDurationSeconds * refreshRate));
+            float expectedFrameDurationSec = 1.0f / Mathf.Max(1, refreshRate);
 
             Stopwatch durationWatch = Stopwatch.StartNew();
             Stopwatch reactionWatch = Stopwatch.StartNew();
 
             bool userClicked = false;
             double reactionTimeMs = -1.0;
+            string inputSource = "None";
             int frameCount = 0;
             int droppedFrames = 0;
+            float lastFrameTime = Time.realtimeSinceStartup;
 
             // Stimulus ON phase (200 ms)
             while (frameCount < framesToPresent)
@@ -158,17 +239,27 @@ namespace OpenPerimeter.Display
                 yield return new WaitForEndOfFrame();
                 frameCount++;
 
-                if (!userClicked && CheckUserInput())
+                float currentFrameTime = Time.realtimeSinceStartup;
+                float delta = currentFrameTime - lastFrameTime;
+                if (delta > expectedFrameDurationSec * 1.5f)
+                {
+                    int dropped = Mathf.RoundToInt(delta / expectedFrameDurationSec) - 1;
+                    if (dropped > 0) droppedFrames += dropped;
+                }
+                lastFrameTime = currentFrameTime;
+
+                if (!userClicked && PerimetryInputHandler.CheckResponse(out InputSourceType src))
                 {
                     userClicked = true;
                     reactionTimeMs = reactionWatch.Elapsed.TotalMilliseconds;
+                    inputSource = src.ToString();
                 }
             }
 
             durationWatch.Stop();
             double actualDurationMs = durationWatch.Elapsed.TotalMilliseconds;
 
-            // Stimulus OFF phase: immediately restore uniform background
+            // Stimulus OFF phase: immediately restore uniform background with fixation mark
             ClearToBackground();
 
             // Continue monitoring response window (up to responseWindowSeconds)
@@ -177,10 +268,11 @@ namespace OpenPerimeter.Display
 
             while (elapsedRemaining < remainingWindowSec)
             {
-                if (!userClicked && CheckUserInput())
+                if (!userClicked && PerimetryInputHandler.CheckResponse(out InputSourceType src))
                 {
                     userClicked = true;
                     reactionTimeMs = reactionWatch.Elapsed.TotalMilliseconds;
+                    inputSource = src.ToString();
                 }
                 yield return null;
                 elapsedRemaining += Time.deltaTime;
@@ -207,19 +299,20 @@ namespace OpenPerimeter.Display
                 reactionTimeMs = userClicked ? reactionTimeMs : -1.0,
                 droppedFrames = droppedFrames,
                 isTimingValid = isTimingValid,
-                timestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                timestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                inputSource = inputSource
             };
 
             onComplete?.Invoke(result);
         }
 
-        private bool CheckUserInput()
+        private void OnDestroy()
         {
-            // Bluetooth HID clicker / Gamepad / Keyboard / Touch
-            return Input.GetKeyDown(KeyCode.Space) ||
-                   Input.GetKeyDown(KeyCode.JoystickButton0) ||
-                   Input.GetKeyDown(KeyCode.Return) ||
-                   Input.GetMouseButtonDown(0);
+            if (stimulusTexture != null)
+            {
+                Destroy(stimulusTexture);
+                stimulusTexture = null;
+            }
         }
     }
 }

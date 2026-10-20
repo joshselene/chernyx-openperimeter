@@ -37,12 +37,22 @@ namespace OpenPerimeter.Core
         private bool isSessionRunning = false;
         private bool isPaused = false;
         private int presentationCounter = 0;
+        private Coroutine sessionCoroutine;
 
         public event Action<float> OnSessionProgress; // 0.0 to 1.0
         public event Action<StoredSessionRecord> OnSessionCompleted;
+        public event Action<string> OnSessionInterrupted;
 
         public bool IsRunning => isSessionRunning;
         public bool IsPaused => isPaused;
+        public EyeSide TestedEye { get => testedEye; set => testedEye = value; }
+        public TestPatternType PatternType { get => patternType; set => patternType = value; }
+        public bool UseZestStrategy { get => useZestStrategy; set => useZestStrategy = value; }
+        public ReliabilityMonitor ReliabilityMonitor => reliabilityMonitor;
+        public CalibrationProfile ActiveProfile => activeProfile;
+        public int PresentationCounter => presentationCounter;
+        public StimulusPresenter StimulusPresenter { get => stimulusPresenter; set => stimulusPresenter = value; }
+        public FixationTarget FixationTarget { get => fixationTarget; set => fixationTarget = value; }
 
         public void Initialize(
             CalibrationProfile profile,
@@ -63,9 +73,27 @@ namespace OpenPerimeter.Core
 
             if (fixationTarget != null)
             {
-                fixationTarget.OnHeadDriftExceeded += (driftDeg) => PauseSession($"Head drift exceeded {driftDeg:F1}°");
-                fixationTarget.OnHeadPoseRestored += () => ResumeSession();
+                fixationTarget.OnHeadDriftExceeded -= HandleHeadDriftExceeded;
+                fixationTarget.OnHeadDriftExceeded += HandleHeadDriftExceeded;
+
+                fixationTarget.OnHeadPoseRestored -= HandleHeadPoseRestored;
+                fixationTarget.OnHeadPoseRestored += HandleHeadPoseRestored;
             }
+
+            if (stimulusPresenter != null)
+            {
+                stimulusPresenter.SetTestedEye(testedEye);
+            }
+        }
+
+        private void HandleHeadDriftExceeded(float driftDeg)
+        {
+            PauseSession($"Head drift exceeded {driftDeg:F1}°");
+        }
+
+        private void HandleHeadPoseRestored()
+        {
+            ResumeSession();
         }
 
         public void StartSession(string participantId)
@@ -76,21 +104,55 @@ namespace OpenPerimeter.Core
                 return;
             }
 
-            StartCoroutine(RunSessionRoutine(participantId));
+            if (stimulusPresenter != null)
+            {
+                stimulusPresenter.SetTestedEye(testedEye);
+            }
+
+            if (sessionCoroutine != null)
+            {
+                StopCoroutine(sessionCoroutine);
+            }
+
+            sessionCoroutine = StartCoroutine(RunSessionRoutine(participantId));
         }
 
         public void PauseSession(string reason = "")
         {
             isPaused = true;
-            reliabilityMonitor.IsPaused = true;
+            if (reliabilityMonitor != null)
+                reliabilityMonitor.IsPaused = true;
             UnityEngine.Debug.Log($"[OpenPerimeter] Session Paused: {reason}");
         }
 
         public void ResumeSession()
         {
             isPaused = false;
-            reliabilityMonitor.IsPaused = false;
+            if (reliabilityMonitor != null)
+                reliabilityMonitor.IsPaused = false;
             UnityEngine.Debug.Log("[OpenPerimeter] Session Resumed.");
+        }
+
+        public void CancelSession(string reason = "User aborted")
+        {
+            if (!isSessionRunning) return;
+
+            if (sessionCoroutine != null)
+            {
+                StopCoroutine(sessionCoroutine);
+                sessionCoroutine = null;
+            }
+
+            isSessionRunning = false;
+            isPaused = false;
+
+            if (stimulusPresenter != null)
+            {
+                stimulusPresenter.ClearToBackground();
+            }
+
+            UnityEngine.Debug.LogWarning($"[OpenPerimeter] Session cancelled: {reason}. Record NOT saved as complete examination.");
+            OnSessionInterrupted?.Invoke(reason);
         }
 
         private IEnumerator RunSessionRoutine(string participantId)
@@ -134,7 +196,7 @@ namespace OpenPerimeter.Core
             {
                 while (isPaused) yield return new WaitForSeconds(0.2f);
 
-                // Check for catch trials (Heijl-Krakau, FP, FN)
+                // Catch trials: Heijl-Krakau blind spot (every 15) and False Positive (every 20)
                 if (presentationCounter > 0 && presentationCounter % 15 == 0)
                 {
                     yield return PresentBlindSpotCatchTrialRoutine();
@@ -144,7 +206,6 @@ namespace OpenPerimeter.Core
                     yield return PresentFalsePositiveCatchTrialRoutine();
                 }
 
-                // Select next incomplete point (pseudo-random selection among incomplete points)
                 var incompleteList = testPoints.FindAll(p => !strategyMap[p.index].IsComplete);
                 if (incompleteList.Count == 0) break;
 
@@ -247,6 +308,7 @@ namespace OpenPerimeter.Core
             StudyExportService.SaveExportFiles(sessionRecord, exportDir);
 
             isSessionRunning = false;
+            sessionCoroutine = null;
             OnSessionCompleted?.Invoke(sessionRecord);
         }
 
@@ -288,10 +350,11 @@ namespace OpenPerimeter.Core
             bool responded = false;
             float waitSec = 1.0f;
             float elapsed = 0f;
+            PerimetryInputHandler.ResetDebounce();
 
             while (elapsed < waitSec)
             {
-                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.JoystickButton0) || Input.GetMouseButtonDown(0))
+                if (PerimetryInputHandler.CheckResponse(out _))
                 {
                     responded = true;
                     break;
@@ -322,6 +385,21 @@ namespace OpenPerimeter.Core
                 if (!strategyMap[pt.index].IsComplete) return true;
             }
             return false;
+        }
+
+        private void OnDestroy()
+        {
+            if (fixationTarget != null)
+            {
+                fixationTarget.OnHeadDriftExceeded -= HandleHeadDriftExceeded;
+                fixationTarget.OnHeadPoseRestored -= HandleHeadPoseRestored;
+            }
+
+            if (sessionCoroutine != null)
+            {
+                StopCoroutine(sessionCoroutine);
+                sessionCoroutine = null;
+            }
         }
     }
 }
