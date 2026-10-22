@@ -1,0 +1,45 @@
+/* OpenPerimeter — Light theme (optional) */
+
+.op-root.op-theme-light {
+    --op-color-canvas: rgb(244, 247, 250);
+    --op-color-surface: rgb(255, 255, 255);
+    --op-color-elevated: rgb(255, 255, 255);
+    --op-color-overlay: rgba(15, 20, 25, 0.45);
+
+    --op-color-text-primary: rgb(26, 34, 44);
+    --op-color-text-secondary: rgb(74, 86, 100);
+    --op-color-text-muted: rgb(106, 120, 136);
+    --op-color-text-inverse: rgb(255, 255, 255);
+
+    --op-color-border: rgb(214, 222, 230);
+    --op-color-border-strong: rgb(168, 180, 192);
+
+    --op-color-accent: rgb(31, 122, 112);
+    --op-color-accent-hover: rgb(26, 104, 96);
+    --op-color-accent-pressed: rgb(22, 90, 82);
+    --op-color-accent-muted: rgba(31, 122, 112, 0.12);
+    --op-color-on-accent: rgb(255, 255, 255);
+
+    --op-color-warning: rgb(183, 121, 31);
+    --op-color-warning-muted: rgba(183, 121, 31, 0.12);
+    --op-color-on-warning: rgb(255, 255, 255);
+
+    --op-color-danger: rgb(197, 48, 48);
+    --op-color-danger-hover: rgb(168, 36, 36);
+    --op-color-danger-muted: rgba(197, 48, 48, 0.12);
+    --op-color-on-danger: rgb(255, 255, 255);
+
+    --op-color-success: rgb(39, 128, 88);
+    --op-color-success-muted: rgba(39, 128, 88, 0.12);
+
+    --op-color-info: rgb(47, 110, 150);
+    --op-color-info-muted: rgba(47, 110, 150, 0.12);
+
+    --op-color-track: rgb(214, 222, 230);
+    --op-color-chip-bg: rgb(236, 241, 246);
+}
+
+.op-root.op-theme-light {
+    background-color: var(--op-color-canvas);
+    color: var(--op-color-text-primary);
+}

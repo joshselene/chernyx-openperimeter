@@ -1,0 +1,49 @@
+/* OpenPerimeter — Dark theme (default, clinical calm) */
+
+.op-root.op-theme-dark {
+    --op-color-canvas: rgb(15, 20, 25);
+    --op-color-surface: rgb(26, 34, 44);
+    --op-color-elevated: rgb(36, 48, 64);
+    --op-color-overlay: rgba(0, 0, 0, 0.55);
+
+    --op-color-text-primary: rgb(232, 238, 244);
+    --op-color-text-secondary: rgb(168, 180, 192);
+    --op-color-text-muted: rgb(122, 135, 148);
+    --op-color-text-inverse: rgb(15, 20, 25);
+
+    --op-color-border: rgb(46, 58, 72);
+    --op-color-border-strong: rgb(70, 86, 104);
+
+    /* Accent — teal (one brand accent) */
+    --op-color-accent: rgb(42, 157, 143);
+    --op-color-accent-hover: rgb(52, 179, 163);
+    --op-color-accent-pressed: rgb(34, 132, 120);
+    --op-color-accent-muted: rgba(42, 157, 143, 0.18);
+    --op-color-on-accent: rgb(8, 28, 26);
+
+    /* Amber — warnings only */
+    --op-color-warning: rgb(233, 168, 37);
+    --op-color-warning-muted: rgba(233, 168, 37, 0.16);
+    --op-color-on-warning: rgb(28, 20, 4);
+
+    /* Red — destructive only */
+    --op-color-danger: rgb(214, 69, 69);
+    --op-color-danger-hover: rgb(232, 88, 88);
+    --op-color-danger-muted: rgba(214, 69, 69, 0.16);
+    --op-color-on-danger: rgb(255, 245, 245);
+
+    /* Success — status, not accent */
+    --op-color-success: rgb(61, 155, 110);
+    --op-color-success-muted: rgba(61, 155, 110, 0.16);
+
+    --op-color-info: rgb(90, 156, 196);
+    --op-color-info-muted: rgba(90, 156, 196, 0.16);
+
+    --op-color-track: rgb(46, 58, 72);
+    --op-color-chip-bg: rgb(36, 48, 64);
+}
+
+.op-root.op-theme-dark {
+    background-color: var(--op-color-canvas);
+    color: var(--op-color-text-primary);
+}

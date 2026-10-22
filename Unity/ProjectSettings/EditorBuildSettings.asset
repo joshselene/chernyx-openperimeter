@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/OpenPerimeter.unity
     guid: 32454ef7136284d3a98c8a22d98062ca
+  - enabled: 0
+    path: Assets/OpenPerimeter/UI/Gallery/ComponentGallery.unity
+    guid: b7c8d9e0f1a2435566778899aabbcc01
   m_configObjects: {}

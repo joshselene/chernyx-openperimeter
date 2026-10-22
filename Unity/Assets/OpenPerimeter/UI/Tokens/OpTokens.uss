@@ -1,0 +1,73 @@
+/* OpenPerimeter Design Tokens — shared custom properties.
+ * Themes override semantic colors; spacing/radius/elevation stay constant.
+ * 8px spacing grid. Touch targets ≥48px. Text contrast ≥4.5:1 (see DESIGN_SYSTEM.md).
+ */
+
+.op-root {
+    /* Spacing (8px grid; --op-space-0-5 = 4px half-step) */
+    --op-space-0: 0px;
+    --op-space-0-5: 4px;
+    --op-space-1: 8px;
+    --op-space-2: 16px;
+    --op-space-3: 24px;
+    --op-space-4: 32px;
+    --op-space-5: 40px;
+    --op-space-6: 48px;
+    --op-space-8: 64px;
+
+    /* Touch */
+    --op-touch-min: 48px;
+
+    /* Radii */
+    --op-radius-sm: 4px;
+    --op-radius-md: 8px;
+    --op-radius-lg: 12px;
+    --op-radius-xl: 16px;
+
+    /* Elevation (border-based; UITK has limited box-shadow support) */
+    --op-elevation-0-border: 0px;
+    --op-elevation-1-border: 1px;
+    --op-elevation-2-border: 1px;
+
+    /* Type scale (100% base; gallery supports 100–130% via --op-font-scale) */
+    --op-font-scale: 1;
+    --op-font-size-xs: 12px;
+    --op-font-size-sm: 14px;
+    --op-font-size-md: 16px;
+    --op-font-size-lg: 18px;
+    --op-font-size-xl: 22px;
+    --op-font-size-2xl: 28px;
+    --op-font-size-mono: 15px;
+
+    /* Motion */
+    --op-duration-fast: 0.12s;
+    --op-duration-med: 0.2s;
+
+    /* Focus ring */
+    --op-focus-width: 2px;
+}
+
+/* Scaled text helpers (applied with font-scale classes) */
+.op-root.op-font-scale-100 {
+    --op-font-scale: 1;
+}
+
+.op-root.op-font-scale-115 {
+    --op-font-size-xs: 14px;
+    --op-font-size-sm: 16px;
+    --op-font-size-md: 18px;
+    --op-font-size-lg: 21px;
+    --op-font-size-xl: 25px;
+    --op-font-size-2xl: 32px;
+    --op-font-size-mono: 17px;
+}
+
+.op-root.op-font-scale-130 {
+    --op-font-size-xs: 16px;
+    --op-font-size-sm: 18px;
+    --op-font-size-md: 21px;
+    --op-font-size-lg: 23px;
+    --op-font-size-xl: 28px;
+    --op-font-size-2xl: 36px;
+    --op-font-size-mono: 20px;
+}

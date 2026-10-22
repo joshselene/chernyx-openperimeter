@@ -1,0 +1,7 @@
+/* Gallery chrome — uses shared tokens */
+
+.op-gallery-header-note {
+    font-size: var(--op-font-size-xs);
+    color: var(--op-color-text-muted);
+    margin-top: var(--op-space-0-5);
+}
