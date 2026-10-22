@@ -1,0 +1,59 @@
+/* Typography — IBM Plex Sans (text) + IBM Plex Mono (numbers).
+ * Font assets are assigned at runtime by OpThemeController via StyleFont
+ * (and optionally via TextCore FontAssets after Editor import).
+ */
+
+.op-text {
+    font-size: var(--op-font-size-md);
+    color: var(--op-color-text-primary);
+    -unity-font-style: normal;
+    white-space: normal;
+}
+
+.op-text--secondary {
+    color: var(--op-color-text-secondary);
+    font-size: var(--op-font-size-sm);
+}
+
+.op-text--muted {
+    color: var(--op-color-text-muted);
+    font-size: var(--op-font-size-sm);
+}
+
+.op-text--xs {
+    font-size: var(--op-font-size-xs);
+}
+
+.op-text--sm {
+    font-size: var(--op-font-size-sm);
+}
+
+.op-text--lg {
+    font-size: var(--op-font-size-lg);
+}
+
+.op-text--xl {
+    font-size: var(--op-font-size-xl);
+    -unity-font-style: bold;
+}
+
+.op-text--display {
+    font-size: var(--op-font-size-2xl);
+    -unity-font-style: bold;
+}
+
+.op-text--mono,
+.op-mono {
+    font-size: var(--op-font-size-mono);
+    /* Mono family applied in OpThemeController */
+}
+
+.op-text--semibold {
+    -unity-font-style: bold;
+}
+
+.op-label {
+    font-size: var(--op-font-size-sm);
+    color: var(--op-color-text-secondary);
+    margin-bottom: var(--op-space-0-5);
+}
